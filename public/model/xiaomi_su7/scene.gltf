@@ -2231,7 +2231,7 @@
       ]
     },
     {
-      "name": "Object_5",
+      "name": "logo",
       "primitives": [
         {
           "attributes": {
@@ -2246,7 +2246,7 @@
       ]
     },
     {
-      "name": "Object_6",
+      "name": "headlight_inside",
       "primitives": [
         {
           "attributes": {
@@ -2261,7 +2261,7 @@
       ]
     },
     {
-      "name": "Object_7",
+      "name": "rearlight",
       "primitives": [
         {
           "attributes": {
@@ -2441,7 +2441,7 @@
       ]
     },
     {
-      "name": "Object_19",
+      "name": "car_window_glass",
       "primitives": [
         {
           "attributes": {
@@ -2456,7 +2456,7 @@
       ]
     },
     {
-      "name": "Object_20",
+      "name": "break_pads",
       "primitives": [
         {
           "attributes": {
@@ -2501,7 +2501,7 @@
       ]
     },
     {
-      "name": "Object_23",
+      "name": "wheel_hub_3",
       "primitives": [
         {
           "attributes": {
@@ -2516,7 +2516,7 @@
       ]
     },
     {
-      "name": "Object_24",
+      "name": "wheel_hub_1",
       "primitives": [
         {
           "attributes": {
@@ -2531,7 +2531,7 @@
       ]
     },
     {
-      "name": "Object_25",
+      "name": "headlight",
       "primitives": [
         {
           "attributes": {
@@ -2591,7 +2591,7 @@
       ]
     },
     {
-      "name": "Object_29",
+      "name": "left_and_right",
       "primitives": [
         {
           "attributes": {
@@ -2680,15 +2680,15 @@
     },
     {
       "mesh": 3,
-      "name": "Object_5"
+      "name": "logo"
     },
     {
       "mesh": 4,
-      "name": "Object_6"
+      "name": "headlight_inside"
     },
     {
       "mesh": 5,
-      "name": "Object_7"
+      "name": "rearlight"
     },
     {
       "mesh": 6,
@@ -2736,11 +2736,11 @@
     },
     {
       "mesh": 17,
-      "name": "Object_19"
+      "name": "car_window_glass"
     },
     {
       "mesh": 18,
-      "name": "Object_20"
+      "name": "break_pads"
     },
     {
       "mesh": 19,
@@ -2752,15 +2752,15 @@
     },
     {
       "mesh": 21,
-      "name": "Object_23"
+      "name": "wheel_hub_3"
     },
     {
       "mesh": 22,
-      "name": "Object_24"
+      "name": "wheel_hub_1"
     },
     {
       "mesh": 23,
-      "name": "Object_25"
+      "name": "headlight"
     },
     {
       "mesh": 24,
@@ -2776,15 +2776,15 @@
     },
     {
       "mesh": 27,
-      "name": "Object_29"
+      "name": "left_and_right"
     },
     {
       "mesh": 28,
-      "name": "Object_30"
+      "name": "rear"
     },
     {
       "mesh": 29,
-      "name": "Object_31"
+      "name": "front"
     }
   ],
   "samplers": [

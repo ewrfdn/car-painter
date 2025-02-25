@@ -1,20 +1,38 @@
 <template>
     <div :style="containerStyle" ref="container">
-        <div class="color-picker">
-            <div v-for="color in colors" :key="color" :style="{ backgroundColor: color }" @click="changeColor(color)"
-                class="color-option"></div>
+        <div :class="['floating-panel', 'color-picker']">
+            <template v-if="!selectedPart">
+                <div v-for="color in colors" :key="color" :style="{ backgroundColor: color }"
+                    @click="changeColor(color)" class="color-option">
+                </div>
+                <div class="color-option custom-color">
+                    <input type="color" @input="onCustomColorChange" :value="customColor" class="color-input">
+                    <span class="plus-icon">+</span>
+                </div>
+            </template>
+            <template v-else>
+                <div v-for="color in colors" :key="color" :style="{ backgroundColor: color }"
+                    @click="changePartColor(selectedPart, color)" class="color-option">
+                </div>
+                <div class="color-option custom-color">
+                    <input type="color" @input="(e) => changePartColor(selectedPart, e.target.value)"
+                        :value="customColor" class="color-input">
+                    <span class="plus-icon">+</span>
+                </div>
+            </template>
         </div>
+
+        <PartsPanel :parts="modelParts" @select-part="onPartSelect" class="parts-panel" />
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CarModelLoader } from '../utils/CarModelLoader'
+import PartsPanel from './PartsPanel.vue'
 
 const container = ref(null)
-let controls
 let carModelLoader
 
 // 预设颜色选项
@@ -26,12 +44,48 @@ const colors = [
     '#000000', // 黑色
 ]
 
+const customColor = ref('#ffffff')
+
+const onCustomColorChange = (event) => {
+    const color = event.target.value
+    customColor.value = color
+    changeColor(color)
+}
+
 const updateSize = () => {
     if (!container.value) return;
     carModelLoader.updateCameraAspect(container.value.clientWidth, container.value.clientHeight);
     carModelLoader.updateRendererSize();
 };
 
+const modelParts = ref([])
+const selectedPart = ref(null)
+
+// 在模型加载完成后获取所有可更改颜色的部件
+const initModelParts = () => {
+    if (!carModelLoader?.carModel) return
+
+    const parts = []
+    carModelLoader.carModel.traverse((node) => {
+        if (node.isMesh && !node.name.toLowerCase().includes('glass')) {
+            // 为每个部件创建独立的材质副本
+            if (Array.isArray(node.material)) {
+                node.material = node.material.map(mat => mat.clone())
+            } else {
+                node.material = node.material.clone()
+            }
+
+            parts.push({
+                name: node.name || `Part ${parts.length + 1}`,
+                mesh: node,
+                uuid: node.uuid // 添加唯一标识符
+            })
+        }
+    })
+    modelParts.value = parts
+}
+
+// 修改初始化场景函数
 const initScene = async () => {
     carModelLoader = new CarModelLoader(colors, container.value);
 
@@ -42,11 +96,9 @@ const initScene = async () => {
     await carModelLoader.initialize()
 
     // 设置控制器
-    setupControls();
-
     carModelLoader.fitCameraToModel();
-    console.log(carModelLoader.getCamera().position);
     carModelLoader.adjustCameraAngle(0);
+    initModelParts() // 添加这一行
 }
 
 // 设置环境贴图
@@ -57,31 +109,50 @@ const setupEnvironmentMap = () => {
     carModelLoader.getScene().environment = envLight;
     pmremGenerator.dispose();
 }
-
-// 设置控制器
-const setupControls = () => {
-    controls = new OrbitControls(carModelLoader.getCamera(), carModelLoader.getCanvas());
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 5;
-    controls.maxDistance = 30;
-    controls.maxPolarAngle = Math.PI / 2;
-    controls.minPolarAngle = 0.1;
-    controls.target.set(0, 0, 0);
-    controls.minAzimuthAngle = -Infinity;
-    controls.maxAzimuthAngle = Infinity;
-    controls.update();
-}
-
+const currentColor = ref(colors[2]);
+const focusedPart = ref(null);
 const changeColor = (color) => {
+    currentColor.value = color;
     carModelLoader?.changeColor(color);
 };
+
+// 选择零件时的处理函数
+const onPartSelect = (part) => {
+    selectedPart.value = part
+    onFocusPart(part)
+}
+
+
+// 聚焦到特定零件
+const onFocusPart = (part) => {
+    if (!part?.mesh) return;
+    const mesh = carModelLoader.carModel.getObjectByProperty('uuid', part.mesh.uuid);
+    if (mesh) {
+        carModelLoader.focusOnPart(mesh);
+    }
+    changePartColor(part, colors[0]);
+    changePartColor(focusedPart.value, currentColor.value);
+    focusedPart.value = part;
+
+}
+
+// 修改特定零件的颜色
+const changePartColor = (part, color) => {
+    console.log(part)
+    if (!part?.mesh) return;
+
+    // 确保正在处理正确的网格
+    const mesh = carModelLoader.carModel.getObjectByProperty('uuid', part.mesh.uuid);
+    if (!mesh) return;
+
+    console.log('Changing color for part:', part.name, 'to color:', color);
+    carModelLoader.changePartColor(mesh, color);
+}
 
 const animate = () => {
     if (!carModelLoader.getRenderer()) return;
 
     requestAnimationFrame(animate);
-    controls?.update();
     carModelLoader.getRenderer().render(carModelLoader.getScene(), carModelLoader.getCamera());
 }
 
@@ -120,17 +191,37 @@ const containerStyle = {
     background-color: #f0f0f0;
 }
 
-.color-picker {
+/* 抽取公共面板样式 */
+.floating-panel {
     position: absolute;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 15px;
+    z-index: 1;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.color-picker {
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: 20px;
-    z-index: 1;
-    padding: 15px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 15px;
+}
+
+.parts-panel {
+    top: 40px;
+    right: 40px;
+    max-height: 60vh;
+}
+
+.selected-part-info {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 14px;
+    color: #333;
 }
 
 .color-option {
@@ -146,5 +237,35 @@ const containerStyle = {
 .color-option:hover {
     transform: scale(1.1);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.custom-color {
+    position: relative;
+    overflow: hidden;
+}
+
+.color-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.plus-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #666;
+    pointer-events: none;
+}
+
+.custom-color {
+    background: linear-gradient(45deg, #f0f0f0 25%, #ddd 25%, #ddd 50%, #f0f0f0 50%, #f0f0f0 75%, #ddd 75%);
+    background-size: 10px 10px;
 }
 </style>
