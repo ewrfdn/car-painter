@@ -1,0 +1,11 @@
+Model Information:
+* title:	小米汽车 Su7模型
+* source:	https://sketchfab.com/3d-models/su7-32058a794fe9465fa2c9eeeb5d69a887
+* author:	lq15117732796 (https://sketchfab.com/lq15117732796)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "小米汽车 Su7模型" (https://sketchfab.com/3d-models/su7-32058a794fe9465fa2c9eeeb5d69a887) by lq15117732796 (https://sketchfab.com/lq15117732796) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

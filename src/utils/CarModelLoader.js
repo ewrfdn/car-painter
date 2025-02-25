@@ -3,10 +3,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import gsap from 'gsap';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { processMaterial } from './material_processer.js';
 
 
 export class CarModelLoader {
-    constructor(colors, container, modelPath = '/model/xiaomi_su7/scene.gltf') {
+    constructor(colors, container, modelPath = '/model/xiaomi_su7/scene.gltf', processor=processMaterial) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 10000);
         this.colors = colors;
@@ -15,6 +16,7 @@ export class CarModelLoader {
         this.carModel = null;
         this.renderer = null;
         this.canvas = null;
+        this.processMaterial = processor;
         this.controls = null;
         this.lights = {
             rectLight: null,
@@ -285,7 +287,7 @@ export class CarModelLoader {
 
         this.scene.add(this.carModel);
         // 添加投影
-        this.createShadowPlane();
+        // this.createShadowPlane();
     }
 
     // 更改颜色
@@ -320,150 +322,6 @@ export class CarModelLoader {
                 }
             }
         });
-    }
-
-    // 处理材质
-    processMaterial(material, color = null) {
-        // 检查是否是需要保持原始状态的材质
-        const isOriginalMaterial = (mat) => {
-            const name = mat.name?.toLowerCase() || '';
-            const meshMtlPattern = /mesh\d+mtl/i;
-            return meshMtlPattern.test(name);
-        };
-
-        // 检查是否是需要保持原色的特殊材质
-        const isSpecialMaterial = (mat) => {
-            const name = mat.name?.toLowerCase() || '';
-            return name.includes('light') ||
-                name.includes('lamp') ||
-                name.includes('logo') ||
-                name.includes('emblem') ||
-                name.includes('chrome') ||
-                name.includes('tail') ||
-                name.includes('led') ||
-                name.includes('badge');
-        };
-
-        // 检查是否是玻璃材质
-        const isGlass = material.name?.toLowerCase().includes('glass') ||
-            material.name?.toLowerCase().includes('window') ||
-            material.transparent === true;
-        const isOrigina = isOriginalMaterial(material);
-        const isSpecial = isSpecialMaterial(material)
-        console.log(isOrigina, isSpecial, isGlass, color, material);
-        if (isOrigina) {
-            return this.createOriginalMaterial(material);
-        } else if (isSpecial && !color) {
-            return this.createSpecialMaterial(material);
-        } else if (isGlass) {
-            return this.createGlassMaterial(material, color);
-        } else {
-            return this.createStandardMaterial(material, color);
-        }
-    }
-
-    // 创建原始材质
-    createOriginalMaterial(material) {
-        const originalMaterial = new THREE.MeshPhysicalMaterial();
-
-        Object.keys(material).forEach(key => {
-            if (typeof material[key] !== 'function' && key !== 'uuid') {
-                if (material[key] && typeof material[key].clone === 'function') {
-                    originalMaterial[key] = material[key].clone();
-                } else {
-                    originalMaterial[key] = material[key];
-                }
-            }
-        });
-
-        const mapProperties = [
-            'map', 'normalMap', 'roughnessMap', 'metalnessMap',
-            'emissiveMap', 'aoMap', 'bumpMap', 'displacementMap',
-            'lightMap', 'alphaMap'
-        ];
-
-        mapProperties.forEach(mapProp => {
-            if (material[mapProp]) {
-                originalMaterial[mapProp] = material[mapProp];
-            }
-        });
-
-        return originalMaterial;
-    }
-
-    // 创建特殊材质
-    createSpecialMaterial(material) {
-        const specialMaterial = new THREE.MeshPhysicalMaterial({
-            color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
-            metalness: 0.1,
-            roughness: 0.2,
-            envMapIntensity: 2.0,
-            emissive: material.emissive ? material.emissive.clone() : new THREE.Color(0x000000),
-            emissiveIntensity: material.emissiveIntensity || 1.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.1
-        });
-
-        ['map', 'emissiveMap', 'normalMap', 'metalnessMap', 'roughnessMap'].forEach(mapType => {
-            if (material[mapType]) specialMaterial[mapType] = material[mapType];
-        });
-
-        return specialMaterial;
-    }
-
-    // 创建玻璃材质
-    createGlassMaterial(material, color) {
-        const glassMaterial = new THREE.MeshPhysicalMaterial({
-            transparent: true,
-            opacity: 0.7,
-            transmission: 1,
-            roughness: 0,
-            metalness: 0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.05,
-            ior: 1.45,
-            color: color ? new THREE.Color(color).multiplyScalar(0.1) : new THREE.Color(0.95, 0.95, 1)
-        });
-
-        if (material.map) glassMaterial.map = material.map;
-        if (material.normalMap) glassMaterial.normalMap = material.normalMap;
-
-        return glassMaterial;
-    }
-
-    // 创建标准材质
-    createStandardMaterial(material, color) {
-        const newMaterial = new THREE.MeshPhysicalMaterial({
-            metalness: 0.6,
-            roughness: 0.15,
-            envMapIntensity: 2.0,
-            clearcoat: 0.5,
-            clearcoatRoughness: 0.1,
-            reflectivity: 1.0
-        });
-
-        if (color) {
-            const newColor = new THREE.Color(color);
-            newColor.multiplyScalar(1.2);
-            newMaterial.color = newColor;
-        } else {
-            newMaterial.color = material.color ?
-                material.color.clone().multiplyScalar(1.2) :
-                new THREE.Color(0xffffff);
-        }
-
-        newMaterial.userData.originalColor = material.color ?
-            material.color.clone() :
-            new THREE.Color(0xffffff);
-
-        ['map', 'normalMap', 'metalnessMap', 'roughnessMap'].forEach(mapType => {
-            if (material[mapType]) {
-                newMaterial[mapType] = material[mapType];
-                if (mapType === 'map') newMaterial[mapType].intensity = 1.2;
-            }
-        });
-
-        return newMaterial;
     }
 
     // 自动调整相机位置以适应模型大小
@@ -653,7 +511,7 @@ export class CarModelLoader {
         const shadowGeometry = new THREE.PlaneGeometry(25, 8); // 调整尺寸以匹配车辆
         const shadowPlane = new THREE.Mesh(shadowGeometry, shadowMaterial);
         shadowPlane.rotation.x = -Math.PI / 2;
-        shadowPlane.position.y = -0.45; // 调整高度，使其更靠近地面
+        shadowPlane.position.y = -0.2; // 调整高度，使其更靠近地面
         shadowPlane.position.z = 0.5; // 微调前后位置
         shadowPlane.renderOrder = 2; // 确保投影在最上层
 
